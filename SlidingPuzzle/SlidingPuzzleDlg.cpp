@@ -65,6 +65,8 @@ BEGIN_MESSAGE_MAP(CSlidingPuzzleDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	
+	ON_BN_CLICKED(IDC_StartBtn, &CSlidingPuzzleDlg::OnBnClickedStartbtn)
 END_MESSAGE_MAP()
 
 
@@ -100,7 +102,7 @@ BOOL CSlidingPuzzleDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
-
+	mCurrentPage = pLOGO;
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -123,10 +125,9 @@ void CSlidingPuzzleDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 void CSlidingPuzzleDlg::OnPaint()
 {
-	if (IsIconic())
+	CPaintDC dc(this); // 그리기를 위한 디바이스 컨텍스트입니다.
+	if (IsIconic())  // 최소화 되었을 때 사용하는 루틴?
 	{
-		CPaintDC dc(this); // 그리기를 위한 디바이스 컨텍스트입니다.
-
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
 		// 클라이언트 사각형에서 아이콘을 가운데에 맞춥니다.
@@ -141,7 +142,29 @@ void CSlidingPuzzleDlg::OnPaint()
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
-	{
+	{	// 최소화가 되지 않은 경우에 여기서 작업
+		/*RECT total_rect;
+		CRect rect;
+		GetWindowRect(&total_rect);
+		GetClientRect(&rect);
+		CPoint pt;
+		pt.x = total_rect.left + (total_rect.right - total_rect.left) / 2 - rect.Width() / 2;
+		pt.y = total_rect.top + (total_rect.bottom - total_rect.top) / 2 - rect.Height() / 2;
+		rect.left = total_rect.right;*/
+		switch (mCurrentPage) {
+		case Page::pLOGO:
+		{
+			CRect rect;
+			GetClientRect(&rect);
+			dc.Rectangle(100, 100, 500, 250); // 화면이 늘어나도 가운데 정렬이 될 수 있도록 계산 필요
+			break;
+		}
+		case Page::pMenu:
+			GetDlgItem(IDC_StartBtn)->ShowWindow(SW_HIDE);
+			dc.RoundRect(100, 150, 450, 300, 30, 30);
+			break;
+		}
+		
 		CDialogEx::OnPaint();
 	}
 }
@@ -153,3 +176,12 @@ HCURSOR CSlidingPuzzleDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+
+void CSlidingPuzzleDlg::OnBnClickedStartbtn()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	mCurrentPage = pMenu;
+	Invalidate();
+}
