@@ -38,4 +38,12 @@ public:
 	enum Page mCurrentPage;
 
 	afx_msg void OnBnClickedStartbtn();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	// 더블버퍼링으로 화면그리기
+	void DoubleBuffering();
+	afx_msg void OnBnClickedNumber();
+	afx_msg void OnBnClickedImage();
+	// 숫자 퍼즐 라인 크기 저장
+	int m_LineNumber;
+	afx_msg void OnCbnSelchangeCombo1();
 };
