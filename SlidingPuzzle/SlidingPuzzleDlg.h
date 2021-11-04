@@ -4,9 +4,13 @@
 
 #pragma once
 enum Page {
-	pLOGO, pMenu, pNumber, pImage
+	pNull, pLOGO, pMenu, pNumber, pImage
 };
 
+#define LOG_RECT_WIDTH 550
+#define LOG_RECT_HEIGHT 350
+#define MENU_RECT_WIDTH 700
+#define MENU_RECT_HEIGHT 600
 
 // CSlidingPuzzleDlg 대화 상자
 class CSlidingPuzzleDlg : public CDialogEx
@@ -41,9 +45,20 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	// 더블버퍼링으로 화면그리기
 	void DoubleBuffering();
-	afx_msg void OnBnClickedNumber();
-	afx_msg void OnBnClickedImage();
+	
 	// 숫자 퍼즐 라인 크기 저장
 	int m_LineNumber;
-	afx_msg void OnCbnSelchangeCombo1();
+	afx_msg void OnBnClickedNumberbtn();
+	// 해당 페이지 설정
+	void SetPage(Page p);
+	// 로고 사각형 좌표
+	CRect rect_Logo;
+	// 메뉴 화면 사각형
+	CRect m_menu_rect;
+	// 메뉴 화면 숫자 버튼
+	CButton cbtn3, cbtn4, cbtn5;
+	afx_msg void OnButton3Clicked();
+	afx_msg void OnButton4Clicked();
+	afx_msg void OnButton5Clicked();
+	afx_msg void OnBnClickedImagebtn();
 };
