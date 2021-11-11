@@ -73,6 +73,8 @@ BEGIN_MESSAGE_MAP(CSlidingPuzzleDlg, CDialogEx)
 	ON_BN_CLICKED(104, &CSlidingPuzzleDlg::OnButton4Clicked)
 	ON_BN_CLICKED(105, &CSlidingPuzzleDlg::OnButton5Clicked)
 	ON_BN_CLICKED(IDC_IMAGEbtn, &CSlidingPuzzleDlg::OnBnClickedImagebtn)
+	ON_WM_CTLCOLOR()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 
@@ -111,7 +113,10 @@ BOOL CSlidingPuzzleDlg::OnInitDialog()
 	RECT rc;
 	::GetWindowRect(m_hWnd, &rc);	// 현재 창 사이즈 rc에 얻어오기
 	::MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left + 400, rc.bottom - rc.top + 400, TRUE);	// 창 늘리기
-
+	
+	cm3.Load(_T(".\\Image\\Buri1.png"));
+	cm4.Load(_T(".\\Image\\Taegeukgi.png"));
+	cm5.Load(_T(".\\Image\\MFC.png"));
 	mCurrentPage = pNull;
 	SetPage(pLOGO);
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -200,12 +205,50 @@ void CSlidingPuzzleDlg::OnPaint()
 		}
 		case Page::pNumber: {
 		
-			DoubleBuffering();
+			CRect rect;
+			GetClientRect(&rect);
+			brush.CreateSolidBrush(RGB(204, 204, 255));
+			pBrush = dc.SelectObject(&brush);
+			dc.Rectangle(rect);
+			dc.SelectObject(pBrush);
+			brush.DeleteObject();
+			m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
+			m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
+			m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
+			m_menu_rect.bottom = m_menu_rect.top + MENU_RECT_HEIGHT;
+			dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30);
+			//DoubleBuffering();
 			dc.TextOutW(200, 200, _T("숫자 퍼즐"));
 			break;
 		}
 		case Page::pImage: {
+			CRect rect, img_rect;
+			GetClientRect(&rect);
+			brush.CreateSolidBrush(RGB(204, 204, 255));
+			pBrush = dc.SelectObject(&brush);
+			dc.Rectangle(rect);
+			dc.SelectObject(pBrush);
+			brush.DeleteObject();
+			m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
+			m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
+			m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
+			m_menu_rect.bottom = m_menu_rect.top + MENU_RECT_HEIGHT;
+			dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30);
 			dc.TextOutW(200, 200, _T("이미지 퍼즐"));
+
+			i_static3.GetClientRect(&img_rect);
+			//HDC hdc = 	GetDlgItem(109)->GetDC()->m_hDC;
+			//SetBkColor(hdc, RGB(255,255,255));
+
+			i_static3.SetBitmap(cm3);
+			i_static4.SetBitmap(cm4);
+			i_static5.SetBitmap(cm5);
+			SetStretchBltMode(i_static3.GetDC()->m_hDC, COLORONCOLOR);
+			SetStretchBltMode(i_static4.GetDC()->m_hDC, COLORONCOLOR);
+			SetStretchBltMode(i_static5.GetDC()->m_hDC, COLORONCOLOR);
+			cm3.Draw(i_static3.GetDC()->m_hDC, 0, 0, img_rect.Width(), img_rect.Height());
+			cm4.Draw(i_static4.GetDC()->m_hDC, 0, 0, img_rect.Width(), img_rect.Height());
+			cm5.Draw(i_static5.GetDC()->m_hDC, 0, 0, img_rect.Width(), img_rect.Height());
 			break;
 		}
 
@@ -324,17 +367,76 @@ void CSlidingPuzzleDlg::OnBnClickedNumberbtn()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	SetPage(pNumber);
-	CClientDC dc(this);
+	//CClientDC dc(this);
 	CRect rect;
 	GetClientRect(&rect);
 	int width = rect.Width() / 2 -50;
-	int height = rect.Height() / 2 + 60;
+	int height = rect.Height() / 2 + 40;
 	// 아래 버튼들이 이미 그려져 있다면 다시 '숫자'버튼을 눌렀을 때 생성되지 않게 해야 한다. if문 사용...
-	cbtn3.Create(_T("3X3"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(width - 120, height, width - 20 , height + 80), this, 103);
+	
+	if (cbtn3.GetSafeHwnd() == NULL){
+	cbtn3.Create(_T("3X3"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(width - 120, height, width - 20, height + 80) , this, 103);
 	cbtn4.Create(_T("4X4"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(width, height, width + 100, height + 80), this, 104);
 	cbtn5.Create(_T("5X5"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(width + 120, height, width + 220, height + 80), this, 105);
+	}
+	
+		if (radio3.GetSafeHwnd() != NULL) {
+			radio3.ShowWindow(SW_HIDE);
+			radio4.ShowWindow(SW_HIDE);
+			radio5.ShowWindow(SW_HIDE);
+		}
+		if (i_static3.GetSafeHwnd() != NULL) {
+			i_static3.ShowWindow(SW_HIDE);
+			i_static4.ShowWindow(SW_HIDE);
+			i_static5.ShowWindow(SW_HIDE);
+		}
+
+		if (cbtn3.GetSafeHwnd() != NULL) {
+			cbtn3.ShowWindow(SW_SHOW);
+			cbtn4.ShowWindow(SW_SHOW);
+			cbtn5.ShowWindow(SW_SHOW);
+		}
+	
+	Invalidate();
 }
 
+void CSlidingPuzzleDlg::OnBnClickedImagebtn()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	SetPage(pImage);
+	CRect rect;
+	GetClientRect(&rect);
+	int width = rect.Width() / 2 - 50;
+	int height = rect.Height() / 2 + 40;
+
+	CRect img_rect;
+	if (i_static3.GetSafeHwnd() == NULL) {
+		i_static3.Create(NULL, WS_CHILD | WS_BORDER | WS_VISIBLE | SS_BITMAP | SS_CENTERIMAGE, CRect(width - 120, height, width - 20, height + 80), this, 106);
+		i_static4.Create(NULL, WS_CHILD | WS_BORDER | WS_VISIBLE | SS_BITMAP | SS_CENTERIMAGE, CRect(width, height, width + 100, height + 80), this, 107);
+		i_static5.Create(NULL, WS_CHILD | WS_BORDER | WS_VISIBLE | SS_BITMAP | SS_CENTERIMAGE, CRect(width + 120, height, width + 220, height + 80), this, 108);
+		radio3.Create(_T("3X3"), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, CRect(width - 120, height + 100, width - 20, height + 120), this, 109);
+		radio4.Create(_T("4X4"), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, CRect(width, height + 100, width + 100, height + 120), this, 110);
+		radio5.Create(_T("5X5"), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, CRect(width + 120, height + 100, width + 220, height + 120), this, 111);
+	}
+		if (radio3.GetSafeHwnd() != NULL) {
+			radio3.ShowWindow(SW_SHOW);
+			radio4.ShowWindow(SW_SHOW);
+			radio5.ShowWindow(SW_SHOW);
+		}
+		if (cbtn3.GetSafeHwnd() != NULL) { // 숫자 버튼이 있으면 
+			cbtn3.ShowWindow(SW_HIDE);
+			cbtn4.ShowWindow(SW_HIDE);
+			cbtn5.ShowWindow(SW_HIDE);
+		}
+		
+		if (i_static3.GetSafeHwnd() != NULL) {
+			i_static3.ShowWindow(SW_SHOW);
+			i_static4.ShowWindow(SW_SHOW);
+			i_static5.ShowWindow(SW_SHOW);
+		}
+
+	Invalidate();
+}
 
 // 해당 페이지  설정
 void CSlidingPuzzleDlg::SetPage(Page page)
@@ -384,7 +486,7 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 		break;
 
 	case Page::pNumber: 
-
+		
 		DoubleBuffering();
 		dc.TextOutW(200, 200, _T("숫자 퍼즐"));
 		break;
@@ -402,6 +504,7 @@ void CSlidingPuzzleDlg::OnButton3Clicked() {
 	CString str;
 	str.Format(_T("%d"), m_LineNumber);
 	AfxMessageBox(str);
+	GameInit(m_LineNumber);
 }
 void CSlidingPuzzleDlg::OnButton4Clicked() {
 	m_LineNumber = 4;
@@ -412,8 +515,50 @@ void CSlidingPuzzleDlg::OnButton5Clicked() {
 	AfxMessageBox(_T("123"));
 }
 
-void CSlidingPuzzleDlg::OnBnClickedImagebtn()
+
+
+void CSlidingPuzzleDlg::GameInit(int line) {
+	struct Box* b;
+	box_size = line * line;
+	//box_width = 
+}
+
+HBRUSH CSlidingPuzzleDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	cbtn3.ShowWindow(SW_HIDE);
+	HBRUSH hbr = CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
+
+	// TODO:  여기서 DC의 특성을 변경합니다.
+	//int nCtlID = pWnd->GetDlgCtrlID();
+	//static CBrush s_brush(RGB(255, 255, 255));
+	//switch (nCtlColor) {		
+	//case CTLCOLOR_BTN:
+	//	switch (nCtlID) {
+	//	case 103:
+	//	case 104:
+	//	case 105:
+	//		pDC->SetBkMode(TRANSPARENT);
+	//		pDC->SetTextColor(RGB(255, 0, 0));
+	//		return s_brush;
+	//		break;
+	//	}
+	//default:
+	//	break;
+	//}
+	// TODO:  기본값이 적당하지 않으면 다른 브러시를 반환합니다.
+	return hbr;
+}
+
+
+BOOL CSlidingPuzzleDlg::OnEraseBkgnd(CDC* pDC)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	CRect rect;
+
+	/*CButton b = (CButton*)GetDlgItem(103);
+	GetClientRect(b);*/
+	//pDC->FillSolidRect(GetDlgItem(103), RGB(255, 255, 255));
+	/*CDC srcDC;
+	srcDC.CreateCompatibleDC(pDC);
+	srcDC.SelectObject(m_bmpBKGND);*/
+	return CDialogEx::OnEraseBkgnd(pDC);
 }

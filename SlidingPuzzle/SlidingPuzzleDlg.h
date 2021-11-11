@@ -6,11 +6,21 @@
 enum Page {
 	pNull, pLOGO, pMenu, pNumber, pImage
 };
+struct Box {
+	byte row;	// 퍼즐의 행
+	byte col;		// 열
+	byte digit;	// 순서
+	CRect rect;	// 위치
+};
 
 #define LOG_RECT_WIDTH 550
 #define LOG_RECT_HEIGHT 350
 #define MENU_RECT_WIDTH 700
 #define MENU_RECT_HEIGHT 600
+
+#define DEFAULT_BOX_WIDTH 120
+#define DEFAULT_BOX_HEIGHT 120
+#define DEFAULT_BOX_MARGIN 10
 
 // CSlidingPuzzleDlg 대화 상자
 class CSlidingPuzzleDlg : public CDialogEx
@@ -57,8 +67,23 @@ public:
 	CRect m_menu_rect;
 	// 메뉴 화면 숫자 버튼
 	CButton cbtn3, cbtn4, cbtn5;
+	// 메뉴 화면 이미지 
+	CStatic i_static3, i_static4, i_static5;
+	CButton radio3, radio4, radio5;
+	CImage cm3, cm4, cm5;
 	afx_msg void OnButton3Clicked();
 	afx_msg void OnButton4Clicked();
 	afx_msg void OnButton5Clicked();
 	afx_msg void OnBnClickedImagebtn();
+	
+	// 퍼즐 박스들 생성
+	struct Box box[25];
+	afx_msg void GameInit(int line);
+	int box_size;
+	int box_width;
+	int box_height;
+	int box_offset;
+	
+	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };
