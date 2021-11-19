@@ -15,13 +15,13 @@ struct Box {
 
 #define LOG_RECT_WIDTH 600
 #define LOG_RECT_HEIGHT 400
-#define MENU_RECT_WIDTH 700
-#define MENU_RECT_HEIGHT 600
+#define MENU_RECT_WIDTH 750
+#define MENU_RECT_HEIGHT 650
 
 #define DEFAULT_BOX_WIDTH 120
 #define DEFAULT_BOX_HEIGHT 120
 #define DEFAULT_BOX_MARGIN 10
-#define FRAME_OFFSET 50
+#define FRAME_OFFSET 80
 #define TOTAL 850
 
 
@@ -95,4 +95,7 @@ public:
 	afx_msg void RadioLine(UINT id);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnBnClickedgamebtn();
-};
+
+	CRect back_rect;	// 뒤로가기 사각형
+	CRect p_num_btn, p_img_btn, p_game_btn;
+}; 
