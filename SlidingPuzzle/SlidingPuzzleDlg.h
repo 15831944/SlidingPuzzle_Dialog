@@ -12,6 +12,9 @@ struct Box {
 	byte digit;	// 순서
 	CRect rect;	// 위치
 };
+enum DIRECTION {
+	dNull, dUp, dDown, dRight, dLeft
+};
 
 #define LOG_RECT_WIDTH 600
 #define LOG_RECT_HEIGHT 400
@@ -53,7 +56,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	enum Page mCurrentPage;
-
+	CImage logo_img;
 	afx_msg void OnBnClickedStartbtn();
 
 	// 더블버퍼링으로 화면그리기
@@ -97,5 +100,12 @@ public:
 	afx_msg void OnBnClickedgamebtn();
 
 	CRect back_rect;	// 뒤로가기 사각형
-	CRect p_num_btn, p_img_btn, p_game_btn;
-}; 
+	CRect start_rect;	// 게임화면의 시작
+	// 메뉴로 돌아갔을 때 버튼 크기 조절
+	CRect p_num_btn, p_img_btn, p_game_btn;		
+	CTime start_tm;	// Timer
+
+	afx_msg void Mixing();
+	DIRECTION RandomDirection(int row, int col);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+};

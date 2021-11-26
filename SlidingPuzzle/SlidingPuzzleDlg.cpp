@@ -75,6 +75,8 @@ void CSlidingPuzzleDlg::DoDataExchange(CDataExchange* pDX)
 	ON_CONTROL_RANGE(BN_CLICKED, 109, 111, &CSlidingPuzzleDlg::RadioLine)
 	ON_WM_LBUTTONDOWN()
 	  ON_BN_CLICKED(IDC_game_btn, &CSlidingPuzzleDlg::OnBnClickedgamebtn)
+	  ON_WM_TIMER()
+	  ON_WM_LBUTTONUP()
   END_MESSAGE_MAP()
 
 
@@ -117,6 +119,7 @@ BOOL CSlidingPuzzleDlg::OnInitDialog()
 	cm3.Load(_T(".\\Image\\Buri1.png"));
 	cm4.Load(_T(".\\Image\\Taegeukgi.png"));
 	cm5.Load(_T(".\\Image\\MFC.png"));
+	logo_img.Load(_T(".\\Image\\LOGO.png"));
 	mCurrentPage = pNull;
 	SetPage(pLOGO);
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -170,16 +173,18 @@ void CSlidingPuzzleDlg::OnPaint()
 		CRect rect;
 		CBrush brush, * pBrush;
 		switch (mCurrentPage) {
-		case Page::pLOGO: 
+		case Page::pLOGO:
+			
 			GetClientRect(&rect);
 			brush.CreateSolidBrush(RGB(180, 198, 166));
 			pBrush = dc.SelectObject(&brush);
 			dc.Rectangle(rect);
 			brush.DeleteObject();
 
-			brush.CreateSolidBrush(RGB(255, 255, 255));
+			/*brush.CreateSolidBrush(RGB(255, 255, 255));
 			pBrush = dc.SelectObject(&brush);
-			dc.Rectangle(rect_Logo); // 화면이 늘어나도 가운데 정렬이 될 수 있도록 계산 필요
+			dc.Rectangle(rect_Logo); */
+			logo_img.Draw(dc, rect_Logo);
 			
 			dc.SelectObject(pBrush);
 			brush.DeleteObject();
@@ -193,12 +198,12 @@ void CSlidingPuzzleDlg::OnPaint()
 			dc.Rectangle(rect);
 			dc.SelectObject(pBrush);
 			brush.DeleteObject();
+		
 			m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
 			m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
 			m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
 			m_menu_rect.bottom = m_menu_rect.top + MENU_RECT_HEIGHT;
 			dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30); // 100, 150, 450, 300
-			
 			break; 
 		}
 		case Page::pNumber: {
@@ -209,6 +214,7 @@ void CSlidingPuzzleDlg::OnPaint()
 			dc.Rectangle(rect);
 			dc.SelectObject(pBrush);
 			brush.DeleteObject();
+
 			m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
 			m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
 			m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
@@ -264,13 +270,15 @@ void CSlidingPuzzleDlg::OnPaint()
 			brush.CreateSolidBrush(RGB(255, 194, 134));
 			pBrush = dc.SelectObject(&brush);
 			back_rect = CRect(20, rect.Height() - 70, 70, rect.Height() - 20);
+			start_rect = CRect((rect.Width() / 2) - 50, 10, (rect.Width() / 2) + 50, 60);
 			dc.FillRect(&back_rect, &brush);
 			dc.SetBkColor(RGB(255, 194, 134));
-			dc.DrawTextW(_T("back"), back_rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
-			
+			dc.FillRect(&start_rect, &brush);
+
+			dc.DrawTextW(_T("Back"), back_rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+			dc.DrawTextW(_T("Start"), start_rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 			dc.SelectObject(pBrush);
 			brush.DeleteObject();
-
 		}
 		
 		CDialogEx::OnPaint();
@@ -327,40 +335,6 @@ void CSlidingPuzzleDlg::OnBnClickedStartbtn()
 // 더블버퍼링으로 화면그리기 
 void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 {
-	/*CWnd* pWnd = NULL;
-
-	pWnd = GetDlgItem(IDC_StartBtn);
-
-	CDC* pDCc = pWnd->GetDC();
-	CRect rect;
-
-	pWnd->GetClientRect(&rect);
-
-	CDC memDC;
-
-	CBitmap* pOldBitmap, bitmap;
-	memDC.CreateCompatibleDC(pDCc);
-	bitmap.CreateCompatibleBitmap(pDCc, rect.right, rect.bottom);
-	pOldBitmap = memDC.SelectObject(&bitmap);
-	CPen* pOldPen = NULL;
-
-	CBrush* pOldBrush = NULL;
-	CPen penWhite(PS_SOLID, 1, RGB(255, 255, 255));
-	CBrush brushWhite(RGB(255, 255, 255));
-
-	pOldPen = memDC.SelectObject(&penWhite);
-	pOldBrush = memDC.SelectObject(&brushWhite);
-	memDC.Rectangle(0, 0, rect.right, rect.bottom);
-	memDC.SelectObject(pOldPen);
-	memDC.SelectObject(pOldBrush);
-
-	pDCc->BitBlt(0, 0, rect.right, rect.bottom, &memDC, 0, 0, SRCCOPY);
-	memDC.SelectObject(pOldBitmap);
-
-	bitmap.DeleteObject();
-	memDC.DeleteDC();
-
-	pWnd->ReleaseDC(pDCc);*/
 	struct Box* b;
 	CString str, str_time;
 	//CBrush brush, * pBrush;
@@ -537,12 +511,12 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 		p->ShowWindow(SW_SHOW);
 		break;
 	case Page::pMenu:
-
 		m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
 		m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
 		m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
 		m_menu_rect.bottom = m_menu_rect.top + MENU_RECT_HEIGHT;
 		dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30); 
+	
 		break;
 
 	case Page::pNumber: 		
@@ -592,7 +566,6 @@ void CSlidingPuzzleDlg::GameInit(int line) {		// 라인에 맞춰 박스 초기 
 }
 
 
-// 이미지 페이지에서 발생하는 라인 점검
 void CSlidingPuzzleDlg::RadioLine(UINT id) {
 	switch (id) {
 	case 109:
@@ -609,7 +582,6 @@ void CSlidingPuzzleDlg::RadioLine(UINT id) {
 
 void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	
 	if (mCurrentPage == pImage) {
 
 		if (PtInRect(static1, point)) {
@@ -628,15 +600,12 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	if (mCurrentPage == pGame) {
 		if (PtInRect(back_rect, point)) {
 			if (AfxMessageBox(str, MB_YESNO | MB_ICONQUESTION) == IDYES) {
-			//	mCurrentPage = pMenu;
+				
 				OnBnClickedStartbtn();
-				//Invalidate();
-			}
-			else {
+			} else {
 				return;
 			}
-			
-		}
+		}		
 	}
 	Invalidate(FALSE);
 	CDialogEx::OnLButtonDown(nFlags, point);
@@ -683,8 +652,163 @@ void CSlidingPuzzleDlg::OnBnClickedgamebtn()
 	GetDlgItem(IDC_NUMBERbtn)->ShowWindow(SW_HIDE);
 	GetDlgItem(IDC_IMAGEbtn)->ShowWindow(SW_HIDE);
 	GetDlgItem(IDC_game_btn)->ShowWindow(SW_HIDE);
-	/*CRect rect;
-	GetClientRect(&rect);
-	m_back.Create(_T("👈"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(20, rect.Height() - 70, 70, rect.Height() - 20), this, 112);*/
 	Invalidate();
+}
+
+
+DIRECTION CSlidingPuzzleDlg::RandomDirection(int row, int col) {
+	DIRECTION dir;
+	dir = DIRECTION::dNull;
+	int dir_no;
+	if (row == 0) {
+		if (col == 0) {
+			dir_no = rand() % 2;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;	// 공백을 기준으로 왼쪽에서 오는 것
+				break;
+			case 1:
+				dir = DIRECTION::dUp;	// 공백을 기준으로 위쪽에서 오는 것
+				break;
+			}
+		}
+		else if (col == box_size - 1) {
+			dir_no = rand() % 2;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dRight;
+				break;
+			case 1:
+				dir = DIRECTION::dUp;
+				break;
+			}
+		}
+		else {
+			dir_no = rand() % 3;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;		// durl?
+				break;
+			case 1:
+				dir = DIRECTION::dRight;
+				break;
+			case 2:
+				dir = DIRECTION::dUp;
+				break;
+			}
+		}
+	}
+	else if (row == box_size - 1) {
+		if (col == 0) {
+			dir_no = rand() % 2;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;
+				break;
+			case 1:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+		else if (col == box_size - 1) {
+			dir_no = rand() % 2;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dRight;
+				break;
+			case 1:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+		else {
+			dir_no = rand() % 3;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;		// durl?
+				break;
+			case 1:
+				dir = DIRECTION::dRight;
+				break;
+			case 2:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+	}
+	else {
+		if (col == 0) {
+			dir_no = rand() % 3;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;
+				break;
+			case 1:
+				dir = DIRECTION::dUp;
+				break;
+			case 2:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+		else if (col == box_size - 1) {
+			dir_no = rand() % 3;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dRight;
+				break;
+			case 1:
+				dir = DIRECTION::dUp;
+				break;
+			case 2:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+		else {
+			dir_no = rand() % 4;
+			switch (dir_no) {
+			case 0:
+				dir = DIRECTION::dLeft;
+				break;
+			case 1:
+				dir = DIRECTION::dRight;
+				break;
+			case 2:
+				dir = DIRECTION::dUp;
+				break;
+			case 3:
+				dir = DIRECTION::dDown;
+				break;
+			}
+		}
+	}
+	return dir;
+}
+
+void CSlidingPuzzleDlg::Mixing() {
+	struct Box* b;
+	DIRECTION dir;
+	b = &box[box_size * box_size - 1];
+	// 상자 랜덤 돌리기
+	dir = RandomDirection(b->row, b->col);
+	switch (dir) {	
+	case DIRECTION::dLeft:		
+		break;
+	case DIRECTION::dRight:		
+		break;
+	case DIRECTION::dDown:	
+		break;
+	case DIRECTION::dUp:		
+		break;
+	}
+	Invalidate(FALSE);
+}
+
+
+void CSlidingPuzzleDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	
+	
+	CDialogEx::OnTimer(nIDEvent);
 }
