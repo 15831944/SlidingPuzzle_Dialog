@@ -108,4 +108,18 @@ public:
 	afx_msg void Mixing();
 	DIRECTION RandomDirection(int row, int col);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void ChangeLocation(Box* pBlank, int to_row, int to_col);
+	int mixing_count;		// Mixing count
+	BOOL flag_play;		// 게임 시작 플래그
+	BOOL end_play;		// 게임 종료 플래그
+
+	int selected_digit;
+	int selected_row;
+	int selected_col;
+	CRect selected_rect;
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void IsFinish();
+	DIRECTION CheckDirection(int row, int col);
+
+	CRect explan_menu;
 };
