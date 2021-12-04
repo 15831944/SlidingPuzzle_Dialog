@@ -16,6 +16,12 @@ enum DIRECTION {
 	dNull, dUp, dDown, dRight, dLeft
 };
 
+struct RANKING_ {
+	int time;
+	int count;
+};
+
+
 #define LOG_RECT_WIDTH 600
 #define LOG_RECT_HEIGHT 400
 #define MENU_RECT_WIDTH 750
@@ -27,6 +33,7 @@ enum DIRECTION {
 #define FRAME_OFFSET 80
 #define TOTAL 850
 
+#define RANKING_MAX  5
 
 // CSlidingPuzzleDlg 대화 상자
 class CSlidingPuzzleDlg : public CDialogEx
@@ -76,7 +83,7 @@ public:
 	// 메뉴 화면 숫자 버튼
 	CButton cbtn3, cbtn4, cbtn5;
 	// 메뉴 화면 이미지 
-	CStatic i_static3, i_static4, i_static5;
+	CStatic i_static3, i_static4, i_static5, i_static_show;
 	CButton radio3, radio4, radio5;
 	CImage cm3, cm4, cm5;
 	CRect static1, static2, static3;
@@ -88,6 +95,7 @@ public:
 	
 	// 퍼즐 박스들 생성
 	struct Box box[25];
+
 	afx_msg void GameInit(int line);
 	int box_size;
 	int box_margin;
@@ -101,6 +109,7 @@ public:
 
 	CRect back_rect;	// 뒤로가기 사각형
 	CRect start_rect;	// 게임화면의 시작
+	CRect show_img;  // 이미지 보여주기
 	// 메뉴로 돌아갔을 때 버튼 크기 조절
 	CRect p_num_btn, p_img_btn, p_game_btn;		
 	CTime start_tm;	// Timer
@@ -122,4 +131,17 @@ public:
 	DIRECTION CheckDirection(int row, int col);
 
 	CRect explan_menu;
+	CString end_tm;
+	CImage img_arry[3];
+	int img_LineNumber;		// 이미지 페이지에서 숫자 라인
+	virtual void Serialize(CArchive& ar);
+	int count;
+	CString ranking;
+	afx_msg void LoadFile();		// 파일 가져오기
+	afx_msg void SaveFile();		// 파일 저장하기
+	CString RankingList[10];
+	struct RANKING_ Ranking[3][RANKING_MAX];
+	
+	CTimeSpan play_time;
+	afx_msg void OnDestroy();
 };

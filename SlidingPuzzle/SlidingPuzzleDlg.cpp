@@ -8,6 +8,9 @@
 #include "SlidingPuzzleDlg.h"
 #include "afxdialogex.h"
 
+#include "mmsystem.h"
+#pragma comment(lib, "winmm")
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -77,7 +80,7 @@ void CSlidingPuzzleDlg::DoDataExchange(CDataExchange* pDX)
 	  ON_BN_CLICKED(IDC_game_btn, &CSlidingPuzzleDlg::OnBnClickedgamebtn)
 	  ON_WM_TIMER()
 	  ON_WM_LBUTTONUP()
-	  ON_WM_CLOSE()
+	  ON_WM_DESTROY()
   END_MESSAGE_MAP()
 
 
@@ -123,6 +126,18 @@ BOOL CSlidingPuzzleDlg::OnInitDialog()
 	logo_img.Load(_T(".\\Image\\LOGO.png"));
 	mCurrentPage = pNull;
 	SetPage(pLOGO);
+	start_tm = 0;
+	img_arry[0] = cm3;
+	img_arry[1] = cm4;
+	img_arry[2] = cm5;
+	count = 0;
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < RANKING_MAX; j++) {
+			Ranking[i][j].time = 0;
+			Ranking[i][j].count = 0;
+		}
+	}
+	LoadFile();		// 게임 시작할 때 랭킹 파일 가져오기
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -163,14 +178,6 @@ void CSlidingPuzzleDlg::OnPaint()
 	}
 	else
 	{	// 최소화가 되지 않은 경우에 여기서 작업
-		/*RECT total_rect;
-		CRect rect;
-		GetWindowRect(&total_rect);
-		GetClientRect(&rect);
-		CPoint pt;
-		pt.x = total_rect.left + (total_rect.right - total_rect.left) / 2 - rect.Width() / 2;
-		pt.y = total_rect.top + (total_rect.bottom - total_rect.top) / 2 - rect.Height() / 2;
-		rect.left = total_rect.right;*/
 		CRect rect;
 		CBrush brush, * pBrush;
 		switch (mCurrentPage) {
@@ -182,9 +189,6 @@ void CSlidingPuzzleDlg::OnPaint()
 			dc.Rectangle(rect);
 			brush.DeleteObject();
 
-			/*brush.CreateSolidBrush(RGB(255, 255, 255));
-			pBrush = dc.SelectObject(&brush);
-			dc.Rectangle(rect_Logo); */
 			logo_img.Draw(dc, rect_Logo);
 			
 			dc.SelectObject(pBrush);
@@ -312,6 +316,13 @@ void CSlidingPuzzleDlg::OnPaint()
 			dc.SetBkColor(RGB(255, 194, 134));
 			dc.FillRect(&start_rect, &brush);
 
+			if (m_Imgnum) {
+				show_img = CRect(start_rect.right + 30, start_rect.top, start_rect.right + 140, start_rect.bottom);
+				dc.FillRect(&show_img, &brush);
+				dc.DrawTextW(_T("Show Image"), show_img, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+
+			}
+
 			dc.DrawTextW(_T("Back"), back_rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 			dc.DrawTextW(_T("Start"), start_rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 			dc.SelectObject(pBrush);
@@ -373,7 +384,7 @@ void CSlidingPuzzleDlg::OnBnClickedStartbtn()
 void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 {
 	struct Box* b;
-	CString str, str_time;
+	CString str, str_time, str_count;
 	//CBrush brush, * pBrush;
 	CBrush game_background, game_screen, game_box;
 	CRect rect, rc;
@@ -391,8 +402,19 @@ void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 	
 	// 타이머
 	mem_dc.SetBkColor(RGB(180, 198, 166));
-	str_time.Format(_T("00:00:00"));
+	if (flag_play) {
+		play_time = CTime::GetCurrentTime() - start_tm;
+		str_time.Format(_T("%02d:%02d:%02d"), play_time.GetHours(), play_time.GetMinutes(), play_time.GetSeconds());
+		end_tm = str_time;
+	}
+	else {
+		str_time.Format(_T("00:00:00"));
+	}
 	mem_dc.DrawTextW(str_time, CRect(10, 10, 100, 40), DT_SINGLELINE | DT_VCENTER);
+
+	// 카운트
+	str_count.Format(_T("count: %d"), count);
+	mem_dc.DrawTextW(str_count, CRect(rect.Width() - 120, 10, rect.Width() - 20, 30), DT_SINGLELINE | DT_VCENTER);
 
 	//GetClientRect(&rc);
 	// 게임 화면 바탕을 위한 그리기 설정
@@ -405,7 +427,6 @@ void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 	mem_dc.FillRect(&rc, &game_screen);
 
 	
-
 	// 폰트 지정
 	CFont font, * pFont;
 	font.CreatePointFont(200, _T("Times New Roman"));
@@ -415,15 +436,28 @@ void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 	game_box.CreateSolidBrush(RGB(102, 128, 106));
 	for (int i = size - 1; i >= 0; i--) {	// 한 칸은 남겨 두어야 하기 때문에 뒤에서부터
 		b = &box[i];
-		if (b->digit != size) {			
-			mem_dc.FillRect(&b->rect, &game_box);
-			mem_dc.SetTextColor(RGB(255, 255, 255));		// 박스 안 글자 색 지정
-			mem_dc.SetBkColor(RGB(102, 128, 106));
-			str.Format(_T("%d"), b->digit);
-			mem_dc.DrawTextW(str, &b->rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);					
+		if (b->digit != size) {
+			if (m_Imgnum) {			// 이미지 설정
+				st_width = img_arry[m_Imgnum - 1].GetWidth() / box_size;
+				st_height = img_arry[m_Imgnum - 1].GetHeight() / box_size;
+				st_x = ((b->digit - 1) % box_size) * st_width;		// 0*width, 1*width, 2*width
+				st_y = ((b->digit - 1) / box_size) * st_height;		// 0*height, 1*height, 2*height
+				img_arry[m_Imgnum - 1].StretchBlt(mem_dc, b->rect.left, b->rect.top, b->rect.Width(), b->rect.Height(),
+					st_x, st_y, st_width, st_height, SRCCOPY);
+			}
+			else {
+				mem_dc.FillRect(&b->rect, &game_box);
+				mem_dc.SetTextColor(RGB(255, 255, 255));		// 박스 안 글자 색 지정
+				mem_dc.SetBkColor(RGB(102, 128, 106));
+				str.Format(_T("%d"), b->digit);
+				mem_dc.DrawTextW(str, &b->rect, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+			}
 		}
-		
+
 	}
+
+	
+
 	dc->BitBlt(0, 0, rect.right, rect.bottom, &mem_dc, 0, 0, SRCCOPY);
 	mem_dc.SelectObject(old_bitmap);
 	bitmap.DeleteObject();
@@ -492,22 +526,22 @@ void CSlidingPuzzleDlg::OnBnClickedImagebtn()
 		radio4.Create(_T("4X4"), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, CRect(width, height + 100, width + 100, height + 120), this, 110);
 		radio5.Create(_T("5X5"), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, CRect(width + 120, height + 100, width + 220, height + 120), this, 111);
 	}
-		if (radio3.GetSafeHwnd() != NULL) {
-			radio3.ShowWindow(SW_SHOW);
-			radio4.ShowWindow(SW_SHOW);
-			radio5.ShowWindow(SW_SHOW);
-		}
-		if (cbtn3.GetSafeHwnd() != NULL) { // 숫자 버튼이 있으면 
-			cbtn3.ShowWindow(SW_HIDE);
-			cbtn4.ShowWindow(SW_HIDE);
-			cbtn5.ShowWindow(SW_HIDE);
-		}
+	if (radio3.GetSafeHwnd() != NULL) {
+		radio3.ShowWindow(SW_SHOW);
+		radio4.ShowWindow(SW_SHOW);
+		radio5.ShowWindow(SW_SHOW);
+	}
+	if (cbtn3.GetSafeHwnd() != NULL) { // 숫자 버튼이 있으면 
+		cbtn3.ShowWindow(SW_HIDE);
+		cbtn4.ShowWindow(SW_HIDE);
+		cbtn5.ShowWindow(SW_HIDE);
+	}
 		
-		if (i_static3.GetSafeHwnd() != NULL) {
-			i_static3.ShowWindow(SW_SHOW);
-			i_static4.ShowWindow(SW_SHOW);
-			i_static5.ShowWindow(SW_SHOW);
-		}
+	if (i_static3.GetSafeHwnd() != NULL) {
+		i_static3.ShowWindow(SW_SHOW);
+		i_static4.ShowWindow(SW_SHOW);
+		i_static5.ShowWindow(SW_SHOW);
+	}
 
 	Invalidate();
 }
@@ -540,13 +574,13 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 		rect_Logo.top = (rect.Height() - LOG_RECT_HEIGHT) / 2 - offset_height;
 		rect_Logo.right = rect_Logo.left + LOG_RECT_WIDTH;
 		rect_Logo.bottom = rect_Logo.top + LOG_RECT_HEIGHT;
-		
+
 		rect_btn.left = rect_Logo.left + (rect_Logo.Width() - rect_Logo.Width() * 0.6) / 2;
 		rect_btn.top = rect_Logo.bottom + 60;
 		rect_btn.right = rect_btn.left + rect_Logo.Width() * 0.6; // width;
 		rect_btn.bottom = rect_btn.top + rect_Logo.Height() * 0.25;
 		p->MoveWindow(rect_btn);
-		
+
 		p->ShowWindow(SW_SHOW);
 		break;
 	case Page::pMenu:
@@ -554,13 +588,13 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 		m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
 		m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
 		m_menu_rect.bottom = m_menu_rect.top + MENU_RECT_HEIGHT;
-		dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30); 
-	
+		dc.RoundRect(m_menu_rect.left, m_menu_rect.top, m_menu_rect.right, m_menu_rect.bottom, 30, 30);
+
 		break;
 
-	case Page::pNumber: 		
+	case Page::pNumber:
 		break;
-	
+
 	case Page::pImage: {
 		break;
 	}
@@ -569,7 +603,7 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 }
 
 void CSlidingPuzzleDlg::OnButton3Clicked() {
-	m_LineNumber = 3;	
+	m_LineNumber = 3;
 }
 void CSlidingPuzzleDlg::OnButton4Clicked() {
 	m_LineNumber = 4;
@@ -589,7 +623,7 @@ void CSlidingPuzzleDlg::GameInit(int line) {		// 라인에 맞춰 박스 초기 
 	box_offset = FRAME_OFFSET;
 	box_width = (rect.Width() - box_offset * 2) / box_size;		// 정해진 게임 화면을 라인만큼 분활
 	box_height = (rect.Height() - box_offset * 2) / box_size;
-	
+
 	for (int row = 0; row < box_size; row++) {
 		for (int col = 0; col < box_size; col++) {
 			b = &box[row * box_size + col];
@@ -608,13 +642,13 @@ void CSlidingPuzzleDlg::GameInit(int line) {		// 라인에 맞춰 박스 초기 
 void CSlidingPuzzleDlg::RadioLine(UINT id) {
 	switch (id) {
 	case 109:
-		m_LineNumber = 3;
+		img_LineNumber = 3;
 		break;
 	case 110:
-		m_LineNumber = 4;
+		img_LineNumber = 4;
 		break;
 	case 111:
-		m_LineNumber = 5;
+		img_LineNumber = 5;
 		break;
 	}
 }
@@ -640,6 +674,9 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		if (PtInRect(static3, point)) {
 			m_Imgnum = 3;	// 세번째 이미지
 		}
+		/*if (i_static_show.GetSafeHwnd() != NULL) {
+			i_static_show.DestroyWindow();
+		}*/
 	}
 	
 	str = _T("메뉴로 돌아가겠습니까?");
@@ -647,13 +684,24 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		if (PtInRect(back_rect, point)) {
 			if (AfxMessageBox(str, MB_YESNO | MB_ICONQUESTION) == IDYES) {
 				flag_play = FALSE;
+				m_Imgnum = 0;
+				m_LineNumber = 0;
+				img_LineNumber = 0;
+				KillTimer(2);
+				if (radio3) {
+					radio3.SetCheck(FALSE);
+					radio4.SetCheck(FALSE);
+					radio5.SetCheck(FALSE);
+				}
 				OnBnClickedStartbtn();
-			} else {
+			}
+			else {
 				return;
 			}
 		}
 		if (PtInRect(start_rect, point)) {
 			mixing_count = 0;
+			count = 0;
 			SetTimer(1, 40, NULL);
 		}
 		if (flag_play) {	// 게임 플레이 시작
@@ -668,9 +716,39 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 					selected_rect = b->rect;
 				}
 			}
-			//str.Format(_T("%d"), selected_digit);
-			//AfxMessageBox(str);
-			//IsFinish();
+		}
+		if (m_Imgnum) {
+			if (PtInRect(show_img, point)) {
+				if (nFlags == MK_LBUTTON) {
+					CRect rect;
+					if (i_static_show.GetSafeHwnd() == NULL) {
+						i_static_show.Create(NULL, WS_CHILD | WS_BORDER | WS_VISIBLE | SS_BITMAP | SS_CENTERIMAGE, 
+							CRect(show_img.left + 40, show_img.top + 10, show_img.right + 60, show_img.bottom + 70), this, 112);
+						
+					}
+					i_static_show.GetClientRect(rect);
+					if (m_Imgnum == 1) {
+						i_static_show.SetBitmap(cm3);
+						SetStretchBltMode(i_static_show.GetDC()->m_hDC, COLORONCOLOR);
+						cm3.Draw(i_static_show.GetDC()->m_hDC, 0, 0, rect.Width(), rect.Height());
+						return;
+					}
+					else if (m_Imgnum == 2) {
+						i_static_show.SetBitmap(cm4);
+						SetStretchBltMode(i_static_show.GetDC()->m_hDC, COLORONCOLOR);
+						cm4.StretchBlt(i_static_show.GetDC()->m_hDC, rect);
+						return;
+					}
+					else {
+						i_static_show.SetBitmap(cm5);
+						SetStretchBltMode(i_static_show.GetDC()->m_hDC, COLORONCOLOR);
+						cm5.StretchBlt(i_static_show.GetDC()->m_hDC, 0, 0, rect.Width(), rect.Height());
+						return;
+					}
+					
+				}
+				
+			}
 		}
 	}
 	Invalidate(FALSE);
@@ -692,6 +770,7 @@ void CSlidingPuzzleDlg::OnBnClickedgamebtn()
 		}
 		if (m_LineNumber) {	// 숫자 선택이 되었다면
 			m_Imgnum = 0;
+			count = 0;
 			GameInit(m_LineNumber);
 			mCurrentPage = pGame;
 			cbtn3.ShowWindow(SW_HIDE);
@@ -700,12 +779,13 @@ void CSlidingPuzzleDlg::OnBnClickedgamebtn()
 		}
 	}
 	if (mCurrentPage == pImage) {
-		if (!m_Imgnum || !m_LineNumber) {		// 숫자 버튼을 누르고 이미지로 넘어오게 되면 LineNumber 섞일 수도 있으니 주의
+		if (!m_Imgnum || !img_LineNumber) {		
+			// 숫자 버튼을 누르고 이미지로 넘어오게 되면 LineNumber 섞일 수도 있으니 주의
 			AfxMessageBox(_T("이미지와 숫자를 선택해주세요"));
 			return;
 		}
-		
-		GameInit(m_LineNumber);
+		count = 0;
+		GameInit(img_LineNumber);
 		mCurrentPage = pGame;
 		i_static3.ShowWindow(SW_HIDE);
 		i_static4.ShowWindow(SW_HIDE);
@@ -794,7 +874,7 @@ DIRECTION CSlidingPuzzleDlg::RandomDirection(int row, int col) {
 			dir_no = rand() % 3;
 			switch (dir_no) {
 			case 0:
-				dir = DIRECTION::dLeft;		// durl?
+				dir = DIRECTION::dLeft;	
 				break;
 			case 1:
 				dir = DIRECTION::dRight;
@@ -909,13 +989,18 @@ void CSlidingPuzzleDlg::OnTimer(UINT_PTR nIDEvent)
 	CClientDC dc(this);
 	CString str;
 	if (nIDEvent == 1) {
-		if (++mixing_count < box_size * 2) {	 //* 30
+		if (++mixing_count < box_size * 30) {	 //* 30
 			Mixing();
 		}
 		else {
 			KillTimer(1);
+			start_tm = CTime::GetCurrentTime();
 			flag_play = TRUE;
+			SetTimer(2, 1000, NULL);
 		}
+	}
+	if (nIDEvent == 2) {
+		Invalidate(FALSE);
 	}
 	CDialogEx::OnTimer(nIDEvent);
 }
@@ -979,9 +1064,20 @@ void CSlidingPuzzleDlg::OnLButtonUp(UINT nFlags, CPoint point)
 					ChangeLocation(b, b->row + 1, b->col);
 					break;
 				}
+				if (flag_play) {
+					count++;
+					PlaySound(_T("Sound/Sound_Effect.wav"), NULL, SND_FILENAME | SND_ASYNC);
+				}				
 				Invalidate(FALSE);
 			}
 		}
+		if (m_Imgnum) {
+			//CRect rect;
+			if (PtInRect(show_img, point)) {
+				i_static_show.DestroyWindow();
+			}
+		}
+
 		IsFinish();
 	}
 
@@ -991,14 +1087,14 @@ void CSlidingPuzzleDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CSlidingPuzzleDlg::IsFinish() {
 	struct Box* b;
-	CString str;
-	int count = 0;
+	CString str, count_str, box_size_str, time_str;
+	int box_count = 0;
 	int row, size, col;
 	size = box_size * box_size - 1;
 	if (flag_play) {
 		for (row = 0; row < box_size; row++) {
 			for (col = 0; col < box_size; col++) {
-				b = &box[count++];
+				b = &box[box_count++];
 				if (b->row == row && b->col == col) {
 					continue;
 				}
@@ -1008,12 +1104,95 @@ void CSlidingPuzzleDlg::IsFinish() {
 			}
 		}
 		end_play = TRUE;
-		str = _T("SUCCEED!\n다시 시작하려면 start 버튼을 누르세요\n");
-		AfxMessageBox(str);
-		flag_play = FALSE;
-		
-		GameInit(m_LineNumber);
-	}
-	//count = 0;
+		KillTimer(2);
+	
+		// Sorting
+		int time = (int)play_time.GetTotalSeconds();
+		RANKING_* pRanking = (RANKING_ * )&Ranking[box_size - 3];
+		for (int c = 0; c < RANKING_MAX; c++) {
+			if (pRanking[c].time == 0) {
+				pRanking[c].time = time;
+				pRanking[c].count = count;
+				break;
+			} 
+			else  if (pRanking[c].time>=time) {
+				for (int b = RANKING_MAX - 2; b >= c; b--) {
+					pRanking[b+1].time = pRanking[b].time;
+					pRanking[b + 1].count = pRanking[b].count;
+				}
+				pRanking[c].time = time;
+				pRanking[c].count = count;
+				break;
+			} 
+		}
 
+		box_size_str.Format(_T("%d"), box_size);
+		
+		for (int i = 0; i < RANKING_MAX; i++) {
+			count_str.Format(_T("%d"), Ranking[box_size - 3][i].count);
+			time_str.Format(_T("%d"), Ranking[box_size - 3][i].time);
+			ranking += _T("Line: ") + box_size_str + _T(" Time: ") + time_str + _T(" count: ") + count_str + _T("\n");
+		}
+		AfxMessageBox(_T("=====RANKING=====\n") + ranking);
+		ranking = _T(" ");
+		flag_play = FALSE;
+	}
+}
+
+
+void CSlidingPuzzleDlg::LoadFile() {
+	CFile file;
+	if (!file.Open(_T("Top5Ranking.dat"), CFile::modeRead))
+		return;
+	CArchive ar(&file, CArchive::load);
+	Serialize(ar);
+	ar.Close();
+	file.Close();
+}
+
+
+
+void CSlidingPuzzleDlg::SaveFile() {
+	CFile file;
+	file.Open(_T("Top5Ranking.dat"), CFile::modeCreate|CFile::modeWrite);
+	CArchive ar(&file, CArchive::store);
+	Serialize(ar);
+	ar.Close();
+	file.Close();
+}
+
+
+
+void CSlidingPuzzleDlg::Serialize(CArchive& ar)
+{
+	if (ar.IsStoring())
+	{	// storing code
+		for (int g = 0; g < 3; g++) {
+			for (int i = 0; i < RANKING_MAX; i++) {
+				ar << (int)Ranking[g][i].time;
+				ar << (int)Ranking[g][i].count;
+			}
+		}
+	}
+	else
+	{	// loading code
+		for (int g = 0; g < 3; g++) {
+			for (int i = 0; i < RANKING_MAX; i++) {
+				ar >> (int)Ranking[g][i].time;
+				ar >> (int)Ranking[g][i].count;
+			}
+		} 
+	}
+}
+
+
+
+void CSlidingPuzzleDlg::OnDestroy()
+{
+	CDialogEx::OnDestroy();
+	KillTimer(1);
+	KillTimer(2);
+	SaveFile();		// 대화상자가 종료될 때 파일 저장하기
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 }
