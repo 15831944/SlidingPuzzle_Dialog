@@ -131,7 +131,7 @@ BOOL CSlidingPuzzleDlg::OnInitDialog()
 	img_arry[1] = cm4;
 	img_arry[2] = cm5;
 	count = 0;
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {	// 랭킹 배열 초기화
 		for (int j = 0; j < RANKING_MAX; j++) {
 			Ranking[i][j].time = 0;
 			Ranking[i][j].count = 0;
@@ -405,7 +405,6 @@ void CSlidingPuzzleDlg::DoubleBuffering(CPaintDC* dc)
 	if (flag_play) {
 		play_time = CTime::GetCurrentTime() - start_tm;
 		str_time.Format(_T("%02d:%02d:%02d"), play_time.GetHours(), play_time.GetMinutes(), play_time.GetSeconds());
-		end_tm = str_time;
 	}
 	else {
 		str_time.Format(_T("00:00:00"));
@@ -563,7 +562,7 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 	case Page::pLOGO:
 		p = (CButton*)GetDlgItem(IDC_StartBtn);
 		p->GetWindowRect(&rect_btn);
-		//ScreenToClient(rect_btn);
+		//배경그리기
 
 		width = rect_btn.Width();
 		height = rect_btn.Height();
@@ -584,6 +583,7 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 		p->ShowWindow(SW_SHOW);
 		break;
 	case Page::pMenu:
+		// 메뉴 화면의 배경 그리기
 		m_menu_rect.left = (rect.Width() - MENU_RECT_WIDTH) / 2;
 		m_menu_rect.top = (rect.Height() - MENU_RECT_HEIGHT) / 2;
 		m_menu_rect.right = m_menu_rect.left + MENU_RECT_WIDTH;
@@ -601,7 +601,7 @@ void CSlidingPuzzleDlg::SetPage(Page page)
 
 	}
 }
-
+// 숫자 라인 선택
 void CSlidingPuzzleDlg::OnButton3Clicked() {
 	m_LineNumber = 3;
 }
@@ -638,7 +638,7 @@ void CSlidingPuzzleDlg::GameInit(int line) {		// 라인에 맞춰 박스 초기 
 	}
 }
 
-
+	// 이미지 라인 선택
 void CSlidingPuzzleDlg::RadioLine(UINT id) {
 	switch (id) {
 	case 109:
@@ -663,20 +663,15 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		}
 	}
 	if (mCurrentPage == pImage) {
-
 		if (PtInRect(static1, point)) {
 			m_Imgnum = 1;	// 첫번째 이미지
 		}
-
 		if (PtInRect(static2, point)) {
 			m_Imgnum = 2;	// 두번째 이미지
 		}
 		if (PtInRect(static3, point)) {
 			m_Imgnum = 3;	// 세번째 이미지
 		}
-		/*if (i_static_show.GetSafeHwnd() != NULL) {
-			i_static_show.DestroyWindow();
-		}*/
 	}
 	
 	str = _T("메뉴로 돌아가겠습니까?");
@@ -699,7 +694,7 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 				return;
 			}
 		}
-		if (PtInRect(start_rect, point)) {
+		if (PtInRect(start_rect, point)) {		// start 버튼 눌리면 박스 섞기위해 timer 설정
 			mixing_count = 0;
 			count = 0;
 			SetTimer(1, 40, NULL);
@@ -717,6 +712,7 @@ void CSlidingPuzzleDlg::OnLButtonDown(UINT nFlags, CPoint point)
 				}
 			}
 		}
+		// show image 버튼 누를시 이미지 보여주기
 		if (m_Imgnum) {
 			if (PtInRect(show_img, point)) {
 				if (nFlags == MK_LBUTTON) {
@@ -780,7 +776,6 @@ void CSlidingPuzzleDlg::OnBnClickedgamebtn()
 	}
 	if (mCurrentPage == pImage) {
 		if (!m_Imgnum || !img_LineNumber) {		
-			// 숫자 버튼을 누르고 이미지로 넘어오게 되면 LineNumber 섞일 수도 있으니 주의
 			AfxMessageBox(_T("이미지와 숫자를 선택해주세요"));
 			return;
 		}
@@ -836,7 +831,7 @@ DIRECTION CSlidingPuzzleDlg::RandomDirection(int row, int col) {
 			dir_no = rand() % 3;
 			switch (dir_no) {
 			case 0:
-				dir = DIRECTION::dLeft;		// durl?
+				dir = DIRECTION::dLeft;
 				break;
 			case 1:
 				dir = DIRECTION::dRight;
@@ -1091,7 +1086,7 @@ void CSlidingPuzzleDlg::IsFinish() {
 	int box_count = 0;
 	int row, size, col;
 	size = box_size * box_size - 1;
-	if (flag_play) {
+	if (flag_play) {		// 위치의 박스가 순서대로 인지 확인
 		for (row = 0; row < box_size; row++) {
 			for (col = 0; col < box_size; col++) {
 				b = &box[box_count++];
@@ -1106,16 +1101,16 @@ void CSlidingPuzzleDlg::IsFinish() {
 		end_play = TRUE;
 		KillTimer(2);
 	
-		// Sorting
-		int time = (int)play_time.GetTotalSeconds();
+		// Ranking Sorting
+		int time = (int)play_time.GetTotalSeconds();		// 타이머 값 가져오기
 		RANKING_* pRanking = (RANKING_ * )&Ranking[box_size - 3];
 		for (int c = 0; c < RANKING_MAX; c++) {
-			if (pRanking[c].time == 0) {
+			if (pRanking[c].time == 0) {		// 랭킹에 아무것도 없으면,
 				pRanking[c].time = time;
 				pRanking[c].count = count;
 				break;
 			} 
-			else  if (pRanking[c].time>=time) {
+			else  if (pRanking[c].time>=time) {	// 랭킹에 있는 값이 현재 시간보다 크면 랭킹 수정
 				for (int b = RANKING_MAX - 2; b >= c; b--) {
 					pRanking[b+1].time = pRanking[b].time;
 					pRanking[b + 1].count = pRanking[b].count;
@@ -1127,7 +1122,7 @@ void CSlidingPuzzleDlg::IsFinish() {
 		}
 
 		box_size_str.Format(_T("%d"), box_size);
-		
+		// 랭킹 메시지 창 띄우기
 		for (int i = 0; i < RANKING_MAX; i++) {
 			count_str.Format(_T("%d"), Ranking[box_size - 3][i].count);
 			time_str.Format(_T("%d"), Ranking[box_size - 3][i].time);
